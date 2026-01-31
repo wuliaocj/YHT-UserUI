@@ -166,6 +166,7 @@ const addToCart = async () => {
   const selectedSpecs = []
   if (selectedTaste.value) selectedSpecs.push(selectedTaste.value)
   if (selectedTemperature.value) selectedSpecs.push(selectedTemperature.value)
+
   
   await cartStore.addToCart(product.value, selectedSpecs, 1)
   // 显示成功提示
@@ -177,8 +178,8 @@ const buyNow = async () => {
   if (!product.value) return
   
   const selectedSpecs = []
-  if (selectedTaste.value) selectedSpecs.push(selectedTaste.value)
-  if (selectedTemperature.value) selectedSpecs.push(selectedTemperature.value)
+  if (selectedTaste.value) selectedSpecs.push(selectedTaste.value as never)
+  if (selectedTemperature.value) selectedSpecs.push(selectedTemperature.value as never)
   
   await cartStore.addToCart(product.value, selectedSpecs, 1)
   router.push('/cart')
