@@ -144,6 +144,85 @@
         </el-form-item>
       </el-form>
     </el-dialog>
+
+    <!-- 个人信息编辑对话框 -->
+    <el-dialog
+      v-model="editProfileDialogVisible"
+      title="编辑个人信息"
+      width="320px"
+    >
+      <el-form :model="editProfileForm" :rules="editProfileRules" ref="editProfileFormRef">
+        <el-form-item prop="nickname">
+          <el-input
+            v-model="editProfileForm.nickname"
+            placeholder="请输入昵称"
+            maxlength="20"
+          >
+            <template #prefix>👤</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="gender">
+          <el-radio-group v-model="editProfileForm.gender">
+            <el-radio label="1">男</el-radio>
+            <el-radio label="2">女</el-radio>
+            <el-radio label="0">其他</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item prop="birthday">
+          <el-date-picker
+            v-model="editProfileForm.birthday"
+            type="date"
+            placeholder="请选择生日"
+            style="width: 100%"
+            value-format="YYYY-MM-DD"
+            max-date="new Date()"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button
+            type="primary"
+            :loading="editProfileLoading"
+            @click="handleEditProfile"
+            style="width: 100%"
+          >
+            保存修改
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+
+    <!-- 设置对话框 -->
+    <el-dialog
+      v-model="settingsDialogVisible"
+      title="设置"
+      width="320px"
+    >
+      <div class="settings-content">
+        <div class="settings-section">
+          <h4 class="settings-title">通知设置</h4>
+          <div class="settings-item">
+            <span class="settings-label">接收订单通知</span>
+            <el-switch v-model="settingsForm.notifications" />
+          </div>
+          <div class="settings-item">
+            <span class="settings-label">接收活动通知</span>
+            <el-switch v-model="settingsForm.privacy" />
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <h4 class="settings-title">其他设置</h4>
+          <div class="settings-item" @click="clearCache">
+            <span class="settings-label">清除缓存</span>
+            <span class="settings-arrow">→</span>
+          </div>
+          <div class="settings-item" @click="openAbout">
+            <span class="settings-label">关于我们</span>
+            <span class="settings-arrow">→</span>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -207,19 +286,95 @@ const navigateTo = (path: string) => {
   router.push(path)
 }
 
+// 编辑个人信息对话框
+const editProfileDialogVisible = ref(false)
+const editProfileLoading = ref(false)
+const editProfileFormRef = ref<FormInstance>()
+
+// 编辑个人信息表单
+const editProfileForm = reactive({
+  nickname: '',
+  gender: 1,
+  birthday: ''
+})
+
+// 编辑个人信息验证规则
+const editProfileRules = reactive({
+  nickname: [
+    { required: true, message: '请输入昵称', trigger: 'blur' },
+    { min: 2, max: 20, message: '昵称长度2-20位', trigger: 'blur' }
+  ],
+  gender: [
+    { required: true, message: '请选择性别', trigger: 'change' }
+  ],
+  birthday: [
+    { required: true, message: '请选择生日', trigger: 'change' }
+  ]
+})
+
 // 编辑个人信息
 const editProfile = () => {
   if (!isLoggedIn.value) {
     login()
     return
   }
-  // 跳转到个人信息编辑页
-  alert('个人信息编辑功能开发中...')
+  // 填充表单数据
+  if (userStore.info) {
+    editProfileForm.nickname = userStore.info.nickname || ''
+    editProfileForm.gender = userStore.info.gender || 1
+    editProfileForm.birthday = userStore.info.birthday || ''
+  }
+  // 打开编辑对话框
+  editProfileDialogVisible.value = true
+}
+
+// 处理编辑个人信息提交
+const handleEditProfile = async () => {
+  if (!editProfileFormRef.value) return
+  
+  await editProfileFormRef.value.validate(async (valid) => {
+    if (valid) {
+      editProfileLoading.value = true
+      try {
+        await userStore.updateUserInfo(editProfileForm)
+        editProfileDialogVisible.value = false
+        alert('个人信息更新成功！')
+      } catch (error) {
+        alert('个人信息更新失败，请重试')
+      } finally {
+        editProfileLoading.value = false
+      }
+    }
+  })
+}
+
+// 设置对话框
+const settingsDialogVisible = ref(false)
+
+// 设置表单
+const settingsForm = reactive({
+  notifications: true,
+  privacy: true
+})
+
+// 清除缓存
+const clearCache = () => {
+  if (confirm('确定要清除缓存吗？')) {
+    // 模拟清除缓存
+    setTimeout(() => {
+      alert('缓存已清除')
+    }, 500)
+  }
+}
+
+// 打开关于我们
+const openAbout = () => {
+  alert('益禾堂用户端 v1.0.0\n\n让世界爱上中国茶')
 }
 
 // 打开设置
 const openSettings = () => {
-  alert('设置功能开发中...')
+  settingsDialogVisible.value = true
 }
 
 // 联系客服
@@ -496,5 +651,49 @@ onMounted(async () => {
   margin: 4px 0;
   font-size: 14px;
   color: #666;
+}
+
+/* 设置对话框样式 */
+.settings-content {
+  padding: 8px 0;
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+
+.settings-title {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 12px;
+  font-weight: normal;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.settings-item:hover {
+  background-color: #f9f9f9;
+}
+
+.settings-item:last-child {
+  border-bottom: none;
+}
+
+.settings-label {
+  font-size: 15px;
+  color: #333;
+}
+
+.settings-arrow {
+  font-size: 14px;
+  color: #999;
 }
 </style>
