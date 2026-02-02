@@ -67,17 +67,134 @@
     <!-- 登录按钮 -->
     <div v-else class="login-section">
       <button class="login-btn" @click="login">登录/注册</button>
+      <button class="token-login-btn" @click="openTokenLogin">Token登录</button>
     </div>
+
+    <!-- 登录对话框 -->
+    <el-dialog
+      v-model="loginDialogVisible"
+      title="登录"
+      width="320px"
+    >
+      <el-form :model="loginForm" :rules="loginRules" ref="loginFormRef">
+        <el-form-item prop="phone">
+          <el-input
+            v-model="loginForm.phone"
+            placeholder="请输入手机号"
+            maxlength="11"
+          >
+            <template #prefix>📱</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item prop="password">
+          <el-input
+            v-model="loginForm.password"
+            type="password"
+            placeholder="请输入密码"
+            show-password
+          >
+            <template #prefix>🔒</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item>
+          <div class="test-account-tip">
+            <p class="text-sm text-gray-500">测试账号：13800138000</p>
+            <p class="text-sm text-gray-500">测试密码：123456</p>
+          </div>
+        </el-form-item>
+        <el-form-item>
+          <el-button
+            type="primary"
+            :loading="loginLoading"
+            @click="handleLogin"
+            style="width: 100%"
+          >
+            登录
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+
+    <!-- Token登录对话框 -->
+    <el-dialog
+      v-model="tokenLoginDialogVisible"
+      title="Token登录"
+      width="320px"
+    >
+      <el-form :model="tokenLoginForm" :rules="tokenLoginRules" ref="tokenLoginFormRef">
+        <el-form-item prop="token">
+          <el-input
+            v-model="tokenLoginForm.token"
+            placeholder="请输入Token"
+            type="textarea"
+            rows="3"
+          >
+            <template #prefix>🔑</template>
+          </el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button
+            type="primary"
+            :loading="tokenLoginLoading"
+            @click="handleTokenLogin"
+            style="width: 100%"
+          >
+            确认登录
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
+import type { FormInstance } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+// 登录对话框
+const loginDialogVisible = ref(false)
+const loginLoading = ref(false)
+const loginFormRef = ref<FormInstance>()
+
+// 登录表单
+const loginForm = reactive({
+  phone: '',
+  password: ''
+})
+
+// 登录验证规则
+const loginRules = reactive({
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码长度至少6位', trigger: 'blur' }
+  ]
+})
+
+// Token登录对话框
+const tokenLoginDialogVisible = ref(false)
+const tokenLoginLoading = ref(false)
+const tokenLoginFormRef = ref<FormInstance>()
+
+// Token登录表单
+const tokenLoginForm = reactive({
+  token: ''
+})
+
+// Token登录验证规则
+const tokenLoginRules = reactive({
+  token: [
+    { required: true, message: '请输入Token', trigger: 'blur' }
+  ]
+})
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const userNickname = computed(() => userStore.userNickname)
@@ -110,10 +227,58 @@ const contactService = () => {
   alert('客服电话：400-123-4567')
 }
 
-// 登录
+// 打开登录对话框
 const login = () => {
-  // 跳转到登录页
-  alert('登录功能开发中...')
+  loginDialogVisible.value = true
+}
+
+// 打开Token登录对话框
+const openTokenLogin = () => {
+  tokenLoginDialogVisible.value = true
+}
+
+// 处理登录
+const handleLogin = async () => {
+  if (!loginFormRef.value) return
+  
+  await loginFormRef.value.validate(async (valid) => {
+    if (valid) {
+      loginLoading.value = true
+      try {
+        await userStore.login(loginForm.phone, loginForm.password)
+        loginDialogVisible.value = false
+        alert('登录成功！')
+      } catch (error) {
+        alert('登录失败，请检查手机号和密码')
+      } finally {
+        loginLoading.value = false
+      }
+    }
+  })
+}
+
+// 处理Token登录
+const handleTokenLogin = async () => {
+  if (!tokenLoginFormRef.value) return
+  
+  await tokenLoginFormRef.value.validate(async (valid) => {
+    if (valid) {
+      tokenLoginLoading.value = true
+      try {
+        // 直接设置token并获取用户信息
+        userStore.token = tokenLoginForm.token
+        localStorage.setItem('token', tokenLoginForm.token)
+        // 尝试获取用户信息
+        await userStore.fetchUserInfo()
+        tokenLoginDialogVisible.value = false
+        alert('Token登录成功！')
+      } catch (error) {
+        alert('Token登录失败，请检查Token是否正确')
+      } finally {
+        tokenLoginLoading.value = false
+      }
+    }
+  })
 }
 
 // 退出登录
@@ -268,10 +433,28 @@ onMounted(async () => {
 .login-btn {
   background-color: #00B578;
   color: #fff;
+  margin-bottom: 12px;
 }
 
 .login-btn:hover {
   background-color: rgba(0, 181, 120, 0.9);
+}
+
+.token-login-btn {
+  background-color: #fff;
+  color: #00B578;
+  border: 1px solid #00B578;
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.token-login-btn:hover {
+  background-color: rgba(0, 181, 120, 0.05);
 }
 
 @media (min-width: 768px) {
@@ -299,5 +482,19 @@ onMounted(async () => {
   .feature-text {
     font-size: 16px;
   }
+}
+
+/* 测试账号提示样式 */
+.test-account-tip {
+  background-color: #f5f5f5;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.test-account-tip p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #666;
 }
 </style>

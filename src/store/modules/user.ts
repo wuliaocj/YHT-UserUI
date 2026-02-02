@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { UserInfo } from '../../types/user'
+import { userApi } from '../../services/api'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -23,23 +24,29 @@ export const useUserStore = defineStore('user', {
     async login(phone: string, password: string) {
       this.loading = true
       try {
-        // 模拟API请求
-        // const response = await userApi.login({ phone, password })
-        // this.info = response.data.user
-        // this.token = response.data.token
-        
-        // 模拟登录成功
-        this.info = {
-          id: 1,
-          phone: phone,
-          nickname: '益禾堂粉丝',
-          avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=young person avatar, friendly, smiling&image_size=square',
-          gender: 1,
-          birthday: '2000-01-01',
-          points: 100
+        // 测试登录功能 - 用于测试环境
+        if (phone === '13800138000' && password === '123456') {
+          // 测试账号登录
+          this.info = {
+            id: 1,
+            phone: phone,
+            nickname: '测试用户',
+            avatar: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=young person avatar, friendly, smiling&image_size=square',
+            gender: 1,
+            birthday: '2000-01-01',
+            points: 100
+          }
+          this.token = 'test_token_' + Date.now()
+          localStorage.setItem('token', this.token)
+          return { success: true, message: '测试登录成功' }
         }
-        this.token = 'mock_token_' + Date.now()
+        
+        // 实际API请求 - 用于生产环境
+        const response = await userApi.login({ phone, password })
+        this.info = response.data.user
+        this.token = response.data.token
         localStorage.setItem('token', this.token)
+        return response
       } catch (error) {
         this.error = '登录失败'
         console.error('Failed to login:', error)

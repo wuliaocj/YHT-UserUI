@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { CartItem } from '../../types/cart'
+import { cartApi } from '../../services/api'
 
 export const useCartStore = defineStore('cart', {
   state: () => ({
@@ -30,38 +31,14 @@ export const useCartStore = defineStore('cart', {
     async fetchCart() {
       this.loading = true
       try {
-        // 模拟API请求
-        // const response = await cartApi.getCart()
-        // this.items = response.data
-        
-        // 模拟数据
-        this.items = [
-          {
-            id: 1,
-            productId: 1,
-            productName: '益禾堂烤奶',
-            image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=yitang milk tea with caramel, product photography, clean background&image_size=square',
-            specIds: '1,2',
-            specNames: '标准糖,热',
-            price: 12,
-            quantity: 1,
-            selected: true
-          },
-          {
-            id: 2,
-            productId: 2,
-            productName: '杨枝甘露',
-            image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=mango pomelo sago drink, product photography, clean background&image_size=square',
-            specIds: '3,4',
-            specNames: '少糖,冰',
-            price: 18,
-            quantity: 1,
-            selected: true
-          }
-        ]
+        // 使用实际API请求
+        const response = await cartApi.getCart()
+        this.items = response
       } catch (error) {
         this.error = '获取购物车失败'
         console.error('Failed to fetch cart:', error)
+        // 失败时使用空数组
+        this.items = []
       } finally {
         this.loading = false
       }
@@ -69,35 +46,15 @@ export const useCartStore = defineStore('cart', {
     async addToCart(product: any, specs: any[], quantity: number) {
       this.loading = true
       try {
-        // 模拟API请求
-        // const response = await cartApi.addToCart({
-        //   productId: product.id,
-        //   specIds: specs.map(spec => spec.id).join(','),
-        //   quantity
-        // })
+        // 使用实际API请求
+        await cartApi.addToCart({
+          productId: product.id,
+          specIds: specs.map(spec => spec.id).join(','),
+          quantity
+        })
         
-        // 模拟添加到购物车
-        const existingItem = this.items.find(item => 
-          item.productId === product.id && 
-          item.specIds === specs.map(spec => spec.id).join(',')
-        )
-        
-        if (existingItem) {
-          existingItem.quantity += quantity
-        } else {
-          const newItem: CartItem = {
-            id: Date.now(),
-            productId: product.id,
-            productName: product.name,
-            image: product.image,
-            specIds: specs.map(spec => spec.id).join(','),
-            specNames: specs.map(spec => spec.name).join(','),
-            price: product.price,
-            quantity,
-            selected: true
-          }
-          this.items.push(newItem)
-        }
+        // 添加成功后重新获取购物车数据
+        await this.fetchCart()
       } catch (error) {
         this.error = '添加到购物车失败'
         console.error('Failed to add to cart:', error)
@@ -108,14 +65,14 @@ export const useCartStore = defineStore('cart', {
     async updateQuantity(cartId: number, quantity: number) {
       this.loading = true
       try {
-        // 模拟API请求
-        // const response = await cartApi.updateQuantity(cartId, quantity)
+        // 使用实际API请求
+        await cartApi.updateCart({
+          cartId,
+          quantity
+        })
         
-        // 模拟更新数量
-        const item = this.items.find(item => item.id === cartId)
-        if (item) {
-          item.quantity = quantity
-        }
+        // 更新成功后重新获取购物车数据
+        await this.fetchCart()
       } catch (error) {
         this.error = '更新数量失败'
         console.error('Failed to update quantity:', error)
@@ -126,11 +83,11 @@ export const useCartStore = defineStore('cart', {
     async removeItem(cartId: number) {
       this.loading = true
       try {
-        // 模拟API请求
-        // const response = await cartApi.removeItem(cartId)
+        // 使用实际API请求
+        await cartApi.deleteCart(cartId)
         
-        // 模拟删除
-        this.items = this.items.filter(item => item.id !== cartId)
+        // 删除成功后重新获取购物车数据
+        await this.fetchCart()
       } catch (error) {
         this.error = '删除商品失败'
         console.error('Failed to remove item:', error)
